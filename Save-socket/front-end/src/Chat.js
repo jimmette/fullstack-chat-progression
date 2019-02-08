@@ -1,10 +1,11 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
+import Socket from "./Socket";
 
 class Chat extends Component {
   constructor(props) {
     super(props);
-    this.state = { message: "" };
+    this.state = { message: "", color: "" };
   }
 
   handleMessageChange = event => {
@@ -15,7 +16,7 @@ class Chat extends Component {
     event.preventDefault();
     let body = JSON.stringify({
       msg: this.state.message,
-      color: this.props.color
+      color: this.state.color
     });
     this.setState({ message: "" });
     fetch("http://localhost:4000/newmessage", {
@@ -30,7 +31,9 @@ class Chat extends Component {
   };
 
   componentDidMount = () => {
-    console.log("in componentDidMount");
+    let color = ["#ff0000", "#0000ff", "#00cc00", "#cc00ff", "#ff9900"];
+    let dice = Math.floor(Math.random() * 5);
+    this.setState({ color: color[dice] });
     let updater = () => {
       fetch("http://localhost:4000/messages", { credentials: "include" })
         .then(function(res) {
@@ -38,14 +41,20 @@ class Chat extends Component {
         })
         .then(responseBody => {
           let parsed = JSON.parse(responseBody);
-          console.log("parsed", parsed);
           this.props.dispatch({
             type: "set-messages",
             messages: parsed.messages
           });
         });
     };
-    setInterval(updater, 1000);
+
+    Socket.on("messages", messages => {
+      console.log("messages", messages);
+      this.props.dispatch({
+        type: "set-messages",
+        messages: messages
+      });
+    });
   };
 
   render() {
@@ -91,7 +100,7 @@ class Chat extends Component {
 }
 
 let connectChat = connect(function(state) {
-  return { messages: state.msgs, username: state.username, color: state.color };
+  return { messages: state.msgs, username: state.username };
 })(Chat);
 
 export default connectChat;

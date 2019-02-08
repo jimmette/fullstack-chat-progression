@@ -7,12 +7,7 @@ import { createStore } from "redux";
 let reducer = function(state, action) {
   switch (action.type) {
     case "login":
-      return {
-        ...state,
-        isLogin: true,
-        username: action.username,
-        color: action.color
-      };
+      return { ...state, isLogin: true, username: action.username };
     case "set-messages":
       return { ...state, msgs: action.messages || [] };
     case "logout":
@@ -26,7 +21,7 @@ let reducer = function(state, action) {
 
 const myStore = createStore(
   reducer,
-  { isLogin: false, msgs: [], username: "", color: "" },
+  { isLogin: false, msgs: [], username: "" },
   window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__()
 );
 

@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
+import Socket from "./Socket";
 
 class Signup extends Component {
   constructor(props) {
@@ -12,12 +13,11 @@ class Signup extends Component {
   handlePasswordChange = event => {
     this.setState({ password: event.target.value });
   };
-  doLogin = bodyStringify => {
+  doLogin = bodyLogin => {
     console.log("doLogin");
-
     fetch("http://localhost:4000/login", {
       method: "POST",
-      body: bodyStringify,
+      body: bodyLogin,
       credentials: "include"
     })
       .then(res => {
@@ -25,10 +25,10 @@ class Signup extends Component {
       })
       .then(responseBody => {
         if (responseBody.success === true) {
+          Socket.emit("login");
           this.props.dispatch({
             type: "login",
-            username: responseBody.username,
-            color: responseBody.color
+            username: responseBody.username
           });
         } else {
           this.setState({ username: "", password: "" });
@@ -36,38 +36,31 @@ class Signup extends Component {
         }
       });
   };
-  doSignup = body => {
+  doSignup = bodyLogin => {
     console.log("doSignup");
-    let color = ["#ff0000", "#0000ff", "#00cc00", "#cc00ff", "#ff9900"];
-    let dice = Math.floor(Math.random() * 5);
-    body.color = color[dice];
-    let bodyStringify = JSON.stringify(body);
     fetch("http://localhost:4000/signup", {
       method: "POST",
-      body: bodyStringify,
+      body: bodyLogin,
       credentials: "include"
     })
       .then(res => {
         return res.json();
       })
       .then(responseBody => {
-        this.doLogin(bodyStringify);
+        this.doLogin(bodyLogin);
       });
   };
   handleSignupSubmit = event => {
     event.preventDefault();
-    let body = {
+    let bodyLogin = JSON.stringify({
       username: this.state.username,
-      password: this.state.password,
-      color: ""
-    };
-
-    let bodyStringify = JSON.stringify(body);
+      password: this.state.password
+    });
 
     console.log("does user exist");
     fetch("http://localhost:4000/doesuserexist", {
       method: "POST",
-      body: bodyStringify,
+      body: bodyLogin,
       credentials: "include"
     })
       .then(res => {
@@ -76,9 +69,9 @@ class Signup extends Component {
       .then(responseBody => {
         console.log(responseBody);
         if (responseBody.success === true) {
-          this.doLogin(bodyStringify);
+          this.doLogin(bodyLogin);
         } else {
-          this.doSignup(body);
+          this.doSignup(bodyLogin);
         }
       });
   };
@@ -112,8 +105,6 @@ class Signup extends Component {
   }
 }
 
-let connectSignup = connect(function(state) {
-  return { messages: state.msgs, username: state.username, color: state.color };
-})(Signup);
+let connectSignup = connect()(Signup);
 
 export default connectSignup;

@@ -12,14 +12,36 @@ app.use(bodyParser.raw({ type: "*/*" }));
 let MongoClient = require("mongodb").MongoClient;
 const url = "mongodb://admin:Er123123@ds125385.mlab.com:25385/decode-chatbox";
 
-// let http = require("http").Server(app);
-// let io = require("socket.io")(http);
+let http = require("http").Server(app);
+let io = require("socket.io")(http);
 
 let generatedId = function() {
   return "" + Math.floor(Math.random() * 10000000000000000);
 };
 
 let sessions = [];
+
+io.on("connection", function(socket) {
+  console.log("a user connected");
+  socket.on("login", () => {
+    console.log("in socket login");
+    MongoClient.connect(url, { useNewUrlParser: true }, (err, db) => {
+      if (err) throw err;
+      let dbo = db.db(DB_NAME);
+      dbo
+        .collection(DB_COLLECTION_MSG)
+        .find({})
+        .toArray((err, result) => {
+          if (err) throw err;
+          let lastMessages = result.reverse().slice(0, 20);
+          socket.emit("messages", lastMessages);
+        });
+      db.close();
+    });
+  });
+
+  socket.on("newmessage", message => {});
+});
 
 app.post("/newmessage", function(req, res) {
   console.log("/newmessage endpoint");
@@ -59,8 +81,6 @@ app.get("/messages", function(req, res) {
         });
       db.close();
     });
-  } else {
-    res.send(JSON.stringify({ success: false }));
   }
 });
 
@@ -70,6 +90,7 @@ app.post("/logout", function(req, res) {
   if (sessions[sessionId]) {
     let username = sessions[sessionId];
     delete sessions[sessionId];
+
     MongoClient.connect(url, { useNewUrlParser: true }, (err, db) => {
       if (err) throw err;
       let newMsg = {
@@ -116,14 +137,13 @@ app.post("/signup", function(req, res) {
   let body = JSON.parse(req.body);
   let username = body.username;
   let password = body.password;
-  let color = body.color;
+
   MongoClient.connect(url, { useNewUrlParser: true }, (err, db) => {
     if (err) throw err;
     let dbo = db.db(DB_NAME);
     let newUser = {
       user: username,
-      pwd: password,
-      color: color
+      pwd: password
     };
     dbo.collection(DB_COLLECTION_PWD).insertOne(newUser, (err, result) => {
       if (err) throw err;
@@ -148,7 +168,6 @@ app.post("/login", function(req, res) {
       .findOne({ user: username }, (err, result) => {
         if (err) throw err;
         if (result.pwd === password) {
-          let color = result.color;
           id = generatedId();
           sessions[id] = username;
           res.set("Set-Cookie", "" + id);
@@ -159,14 +178,7 @@ app.post("/login", function(req, res) {
           };
           dbo.collection(DB_COLLECTION_MSG).insertOne(newMsg, (err, result) => {
             if (err) throw err;
-            res.send(
-              JSON.stringify({
-                success: true,
-                username: username,
-
-                color: color
-              })
-            );
+            res.send(JSON.stringify({ success: true, username: username }));
           });
         } else {
           res.send(JSON.stringify({ success: false }));
@@ -176,11 +188,5 @@ app.post("/login", function(req, res) {
   });
 });
 
-app.get("/activeusers", function(req, res) {
-  console.log("/activeusers endpoint");
-  let activeUsers = Object.values(sessions);
-  res.send(JSON.stringify({ success: true, activeUsers: activeUsers }));
-});
-
 app.listen(4000);
-// io.listen(4001);
+io.listen(4001);

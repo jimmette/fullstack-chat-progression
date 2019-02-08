@@ -3,7 +3,6 @@ import Signup from "./Signup";
 import Chat from "./Chat";
 import Logout from "./Logout";
 import { connect } from "react-redux";
-import ActiveUsers from "./ActiveUsers";
 
 class App extends Component {
   renderSignupLogin = () => {
@@ -25,9 +24,6 @@ class App extends Component {
     return (
       <div style={{ display: "flex", justifyContent: "center" }}>
         {this.props.isLogin ? this.renderChat() : this.renderSignupLogin()}
-        <div>
-          <ActiveUsers />{" "}
-        </div>
       </div>
     );
   }
